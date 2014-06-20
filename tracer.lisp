@@ -83,16 +83,16 @@
     :initform 1)
    (fov
     :initarg :fov
-    :initform pi)
+    :initform (/ pi 3))
    (aspect
     :initarg :aspect
     :initform 1)
    (nearclip
     :initarg :nearclip
-    :initform 0.1)
+    :initform .1)
    (farclip
     :initarg :nearclip
-    :initform 10)))
+    :initform 100)))
 
 (defun direction (camera)
   (with-slots (orientation) camera
@@ -102,6 +102,9 @@
   (with-slots (orientation) camera
     (v-rot-quat orientation '(0 1 0))))
 
+(defun fov-degrees (camera)
+  (with-slots (fov) camera
+    (* (/ 180 pi) fov)))
 
 (defclass light ()
   ((position
@@ -226,22 +229,32 @@
   ;;     (cl-opengl:call-list triangle)))
   ;;(cl-opengl:shade-model :flat)
   ;;(cl-opengl:normal 0 0 1)
+
+  (let ((camera (make-instance 'camera)))
+    (cl-opengl:matrix-mode :projection)
+    (cl-opengl:load-identity)
+    (with-accessors ((fov-degrees fov-degrees)) camera
+      (with-slots (aspect nearclip farclip) camera
+        (cl-glu:perspective fov-degrees aspect nearclip farclip)))
+
+    (cl-opengl:matrix-mode :modelview)
+    (cl-opengl:load-identity)
+    (with-accessors ((direction direction) (up up)) camera
+      (with-slots (position) camera
+        (let ((center (vadd position direction)))
+          (cl-glu:look-at (nth 0 position) (nth 1 position) (nth 2 position)
+                          (nth 0 center) (nth 1 center) (nth 2 center)
+                          (nth 0 up) (nth 1 up) (nth 2 up))))))
+
   (cl-opengl:with-pushed-matrix
     (with-slots (trackx trackz tracky rotx roty rotz) window
       (cl-opengl:rotate rotx 1 0 0)
       (cl-opengl:rotate roty 0 1 0)
       (cl-opengl:rotate rotz 0 0 1)
       (cl-opengl:translate trackx tracky trackz))
-    (let ((shapes `(,(make-instance 'sphere :position '(0 0 -10))
-                     ,(make-instance 'sphere :position '(-3 0 -10)))))
+    (let ((shapes `(,(make-instance 'sphere :position '(1 0 -6))
+                     ,(make-instance 'sphere :position '(-1 0 -6)))))
       (mapcar #'draw shapes))
-    (let ((camera (make-instance 'camera)))
-      (with-accessors ((direction direction) (up up)) camera
-        (with-slots (position) camera
-          (let ((center (vadd position direction)))
-            (cl-glu:look-at (nth 0 position) (nth 1 position) (nth 2 position)
-                            (nth 0 center) (nth 1 center) (nth 2 center)
-                            (nth 0 up) (nth 1 up) (nth 2 up))))))
     (addlight (make-instance 'light :position '(0 0 0 1) :color '(1 1 1 1))))
     ;;(with-slots (width height) window
       ;;(cl-opengl:draw-pixels width height :rgba :unsigned-byte
