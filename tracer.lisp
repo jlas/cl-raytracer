@@ -71,6 +71,16 @@
 (defun to-rad (degrees)
   (/ (* degrees pi) 180))
 
+
+(defclass scene ()
+  ((camera
+    :initarg :camera
+    :initform (make-instance 'camera))
+   (lights
+    :initarg :lights)
+   (geometries
+    :initarg :geometries)))
+
 (defclass camera ()
   ((position
     :initarg :position
@@ -230,34 +240,44 @@
   ;;(cl-opengl:shade-model :flat)
   ;;(cl-opengl:normal 0 0 1)
 
-  (let ((camera (make-instance 'camera)))
-    (cl-opengl:matrix-mode :projection)
-    (cl-opengl:load-identity)
-    (with-accessors ((fov-degrees fov-degrees)) camera
-      (with-slots (aspect nearclip farclip) camera
-        (cl-glu:perspective fov-degrees aspect nearclip farclip)))
+  (let ((scene
+         (make-instance
+          'scene
+          :camera (make-instance 'camera)
+          :lights `(,(make-instance
+                      'light :position '(0 0 0 1) :color '(1 1 1 1)))
+          :geometries `(,(make-instance 'sphere :position '(1 0 -6))
+                         ,(make-instance 'sphere :position '(-1 0 -6))))))
 
-    (cl-opengl:matrix-mode :modelview)
-    (cl-opengl:load-identity)
-    (with-accessors ((direction direction) (up up)) camera
-      (with-slots (position) camera
-        (let ((center (vadd position direction)))
-          (cl-glu:look-at (nth 0 position) (nth 1 position) (nth 2 position)
-                          (nth 0 center) (nth 1 center) (nth 2 center)
-                          (nth 0 up) (nth 1 up) (nth 2 up))))))
+    (with-slots (camera lights geometries) scene
 
-  (cl-opengl:with-pushed-matrix
-    (with-slots (trackx trackz tracky rotx roty rotz) window
-      (cl-opengl:rotate rotx 1 0 0)
-      (cl-opengl:rotate roty 0 1 0)
-      (cl-opengl:rotate rotz 0 0 1)
-      (cl-opengl:translate trackx tracky trackz))
-    (let ((shapes `(,(make-instance 'sphere :position '(1 0 -6))
-                     ,(make-instance 'sphere :position '(-1 0 -6)))))
-      (mapcar #'draw shapes))
-    (addlight (make-instance 'light :position '(0 0 0 1) :color '(1 1 1 1))))
-    ;;(with-slots (width height) window
-      ;;(cl-opengl:draw-pixels width height :rgba :unsigned-byte
+      (cl-opengl:matrix-mode :projection)
+      (cl-opengl:load-identity)
+      (with-accessors ((fov-degrees fov-degrees)) camera
+        (with-slots (aspect nearclip farclip) camera
+          (cl-glu:perspective fov-degrees aspect nearclip farclip)))
+
+      (cl-opengl:matrix-mode :modelview)
+      (cl-opengl:load-identity)
+      (with-accessors ((direction direction) (up up)) camera
+        (with-slots (position) camera
+          (let ((center (vadd position direction)))
+            (cl-glu:look-at (nth 0 position) (nth 1 position) (nth 2 position)
+                            (nth 0 center) (nth 1 center) (nth 2 center)
+                            (nth 0 up) (nth 1 up) (nth 2 up)))))
+
+      (cl-opengl:with-pushed-matrix
+        (with-slots (trackx trackz tracky rotx roty rotz) window
+          (cl-opengl:rotate rotx 1 0 0)
+          (cl-opengl:rotate roty 0 1 0)
+          (cl-opengl:rotate rotz 0 0 1)
+          (cl-opengl:translate trackx tracky trackz))
+        (mapcar #'draw geometries))
+      (mapcar #'addlight lights)))
+
+  ;;(with-slots (width height) window
+
+    ;;(cl-opengl:draw-pixels width height :rgba :unsigned-byte
         ;;                     (concatenate 'vector (loop for i from 0 to 360000 collect (mod i 255))))))
   ;;(cl-glut:solid-teapot 1))
   ;;(cl-opengl:draw-pixels 50 100 :rgba :unsigned-byte #(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
