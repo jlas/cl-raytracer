@@ -225,6 +225,18 @@
   (:default-initargs :title "Tracer" :mode '(:double :rgb :depth)))
 
 
+(defun min-intersect (l +inf+ nil)
+  (cond (car l
+
+(defun raytrace (scene direction eyepos)
+  (labels ((min-intersect (geoms int geom)
+           (let ((newint (intersect (car geoms) direction eyepos)))
+           (cond ((< newint int)
+                  (min-intersect (cdr geoms) newint (car geoms)))
+                 (t
+                  (min-intersect (cdr geoms) int geom))))))
+    (funcall #'min-intersect (slot-value scene 'geometries) +inf+ nil)))
+
 (defmethod cl-glut:display-window :before ((window tracer-window))
   (cl-opengl:enable :normalize)
   (cl-opengl:enable :depth-test))
@@ -273,7 +285,26 @@
           (cl-opengl:rotate rotz 0 0 1)
           (cl-opengl:translate trackx tracky trackz))
         (mapcar #'draw geometries))
-      (mapcar #'addlight lights)))
+
+      (mapcar #'addlight lights)
+      (with-slots (width height) window
+        (with-accessors ((camdir direction) (camup up)) camera
+          (with-slots ((eyepos position) aspect nearclip fov) camera
+            (dotimes (r height)
+              (dotimes (c width)
+                (let* ((xstep (/ (* 2 c) width)) (ystep (/ (* 2 r) height))
+                      (direction
+                       (vadd
+                        (vadd (vmult nearclip camdir)
+                              (vmult
+                               (vmult (* (* nearclip aspect) (1- xstep))
+                                      (cross camdir camup))
+                               (tan (/ fov 2))))
+                        (vmult
+                         (vmult
+                          (* nearclip (1- ystep)) camup)
+                         (tan (/ fov 2))))))
+                  (raytrace scene direction eyepos)))))))))
 
   ;;(with-slots (width height) window
 
