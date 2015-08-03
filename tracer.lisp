@@ -1,76 +1,8 @@
-;;;; -*- Mode: lisp; indent-tabs-mode: nil -*-
-;;; tracer.lisp
-;;;
+;;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Base: 10 -*-
 
-;(declaim (optimize (speed 3) (safety 0) (compilation-speed 0) (debug 0)))
+(in-package :raytracer)
 
-(ql:quickload "cl-opengl")
-(ql:quickload "cl-glut")
-(ql:quickload "cl-glu")
-
-;; infinity
-(defconstant +inf+ (exp 20))
-
-;; cross product
-(defun cross (v1 v2)
-  (let ((xl (nth 0 v1)) (yl (nth 1 v1)) (zl (nth 2 v1))
-        (xr (nth 0 v2)) (yr (nth 1 v2)) (zr (nth 2 v2)))
-    (list (- (* yl zr) (* zl yr))
-          (- (* zl xr) (* xl zr))
-          (- (* xl yr) (* yl zr)))))
-
-;; dot product
-(defun dot (v1 v2)
-  (+ (+ (* (nth 0 v1) (nth 0 v2))
-        (* (nth 1 v1) (nth 1 v2)))
-     (* (nth 2 v1) (nth 2 v2))))
-
-;; vector operation
-(defmacro vop (v1 v2 f)
-  `(list
-    (,f (nth 0 ,v1) (nth 0 ,v2))
-    (,f (nth 1 ,v1) (nth 1 ,v2))
-    (,f (nth 2 ,v1) (nth 2 ,v2))))
-
-;; vector subtraction
-(defun vmin (v1 v2)
-  (vop v1 v2 -))
-
-;; vector addition
-(defun vadd (v1 v2)
-  (vop v1 v2 +))
-
-(defmacro vscaleop (s v1 f)
-  `(list
-    (,f (nth 0 ,v1) ,s)
-    (,f (nth 1 ,v1) ,s)
-    (,f (nth 2 ,v1) ,s)))
-
-;; vector rotation by quaternion
-(defun v-rot-quat (q v)
-  (let* ((qv (list (nth 0 q) (nth 1 q) (nth 2 q)))
-         (w (nth 3 q))
-         (uv (cross qv v))
-         (uuv (cross qv uv)))
-    (vadd (vadd v (vmult (* 2 w) uv)) (vmult 2 uuv))))
-
-;; vector-scalar multiplication
-(defun vmult (s v1)
-  (vscaleop s v1 *))
-
-;; vector-scalar division
-(defun vdiv (s v1)
-  (vscaleop s v1 /))
-
-;; vector normalize
-(defun normalize (v1)
-  (vdiv v1 (sqrt (loop for i from 0 to 2 sum (* i i)))))
-
-;;(defconstant +pif+ (coerce pi 'single-float))
-
-(defun to-rad (degrees)
-  (/ (* degrees pi) 180))
-
+;;(declaim (optimize (speed 3) (safety 0) (compilation-speed 0) (debug 0)))
 
 (defclass scene ()
   ((camera
@@ -141,7 +73,9 @@
     :initform '((1 0 0 0) (1 0 0 0) (1 0 0 0) 0))))
 
 (defclass sphere (shape)
-  (radius))
+  ((radius
+    :initarg :radius
+    :initform 1)))
 
 (defgeneric draw (shape))
 (defgeneric intersect (shape direction eye))
@@ -170,10 +104,30 @@
         (cl-opengl:with-primitives :triangle-strip
           (do ((lat 0 (+ lat (/ incr 2))))
               ((>= lat pi))
-            (cl-opengl:vertex (* (sin lat) (cos long)) (* -1 (cos lat)) (* (sin lat) (sin long)))
-            (cl-opengl:vertex (* (sin lat) (cos nextLong)) (* -1 (cos lat)) (* (sin lat) (sin nextLong))))
-          (cl-opengl:vertex (* (sin pi) (cos long)) (* -1 (cos pi)) (* (sin pi) (sin long)))
-          (cl-opengl:vertex (* (sin pi) (cos nextLong)) (* -1 (cos pi)) (* (sin pi) (sin nextLong))))))))
+            (apply #'cl-opengl:vertex
+                   (vmult
+                    (slot-value shape 'radius)
+                    (list (* (sin lat) (cos long))
+                          (* -1 (cos lat))
+                          (* (sin lat) (sin long)))))
+            (apply #'cl-opengl:vertex
+                   (vmult
+                    (slot-value shape 'radius)
+                    (list (* (sin lat) (cos nextLong))
+                          (* -1 (cos lat))
+                          (* (sin lat) (sin nextLong))))))
+          (apply #'cl-opengl:vertex
+                 (vmult
+                  (slot-value shape 'radius)
+                  (list (* (sin pi) (cos long))
+                        (* -1 (cos pi))
+                        (* (sin pi) (sin long)))))
+          (apply #'cl-opengl:vertex
+                 (vmult
+                  (slot-value shape 'radius)
+                  (list (* (sin pi) (cos nextLong))
+                        (* -1 (cos pi))
+                        (* (sin pi) (sin nextLong))))))))))
 
 (defmethod intersect ((shape sphere) direction eye)
   (with-slots (position radius) shape
@@ -224,18 +178,17 @@
    (width :initarg :width :initform 300))
   (:default-initargs :title "Tracer" :mode '(:double :rgb :depth)))
 
-
-(defun min-intersect (l +inf+ nil)
-  (cond (car l
-
 (defun raytrace (scene direction eyepos)
   (labels ((min-intersect (geoms int geom)
-           (let ((newint (intersect (car geoms) direction eyepos)))
-           (cond ((< newint int)
-                  (min-intersect (cdr geoms) newint (car geoms)))
-                 (t
-                  (min-intersect (cdr geoms) int geom))))))
-    (funcall #'min-intersect (slot-value scene 'geometries) +inf+ nil)))
+             (cond ((eq geoms nil)
+                    (list int geom))
+                   (t
+                    (let ((newint (intersect (car geoms) direction eyepos)))
+                      (cond ((< newint int)
+                             (min-intersect (cdr geoms) newint (car geoms)))
+                            (t
+                             (min-intersect (cdr geoms) int geom))))))))
+    (min-intersect (slot-value scene 'geometries) +inf+ nil)))
 
 (defmethod cl-glut:display-window :before ((window tracer-window))
   (cl-opengl:enable :normalize)
@@ -297,13 +250,12 @@
                        (vadd
                         (vadd (vmult nearclip camdir)
                               (vmult
+                               (tan (/ fov 2))
                                (vmult (* (* nearclip aspect) (1- xstep))
-                                      (cross camdir camup))
-                               (tan (/ fov 2))))
+                                      (cross camdir camup))))
                         (vmult
-                         (vmult
-                          (* nearclip (1- ystep)) camup)
-                         (tan (/ fov 2))))))
+                         (tan (/ fov 2))
+                         (vmult (* nearclip (1- ystep)) camup)))))
                   (raytrace scene direction eyepos)))))))))
 
   ;;(with-slots (width height) window
@@ -371,187 +323,3 @@
 
 (defun tracer ()
   (cl-glut:display-window (make-instance 'tracer-window)))
-
-(tracer)
-
-
-;; (defun draw-gear (inner-radius outer-radius width n-teeth tooth-depth)
-;;   "Draw a gear."
-;;   (declare (single-float inner-radius outer-radius width tooth-depth)
-;;            (fixnum n-teeth))
-;;   (let ((r0 inner-radius)
-;;         (r1 (- outer-radius (/ tooth-depth 2.0)))
-;;         (r2 (+ outer-radius (/ tooth-depth 2.0)))
-;;         (da (/ (* 2.0 +pif+) n-teeth 4.0)))
-;;     (cl-opengl:shade-model :flat)
-;;     (cl-opengl:normal 0 0 1)
-;;     ;; Draw front face.
-;;     (cl-opengl:with-primitives :quad-strip
-;;       (dotimes (i (1+ n-teeth))
-;;         (let ((angle (/ (* i 2.0 +pif+) n-teeth)))
-;;           (cl-opengl:vertex (* r0 (cos angle)) (* r0 (sin angle)) (* width 0.5))
-;;           (cl-opengl:vertex (* r1 (cos angle)) (* r1 (sin angle)) (* width 0.5))
-;;           (cl-opengl:vertex (* r0 (cos angle)) (* r0 (sin angle)) (* width 0.5))
-;;           (cl-opengl:vertex (* r1 (cos (+ angle (* 3 da))))
-;;                      (* r1 (sin (+ angle (* 3 da))))
-;;                      (* width 0.5)))))
-;;     ;; Draw front sides of teeth.
-;;     (cl-opengl:with-primitives :quads
-;;       (dotimes (i n-teeth)
-;;         (let ((angle (/ (* i 2.0 +pif+) n-teeth)))
-;;           (cl-opengl:vertex (* r1 (cos angle)) (* r1 (sin angle)) (* width 0.5))
-;;           (cl-opengl:vertex (* r2 (cos (+ angle da))) (* r2 (sin (+ angle da)))
-;;                      (* width 0.5))
-;;           (cl-opengl:vertex (* r2 (cos (+ angle (* 2 da))))
-;;                      (* r2 (sin (+ angle (* 2 da))))
-;;                      (* width 0.5))
-;;           (cl-opengl:vertex (* r1 (cos (+ angle (* 3 da))))
-;;                      (* r1 (sin (+ angle (* 3 da))))
-;;                      (* width 0.5)))))
-;;     (cl-opengl:normal 0 0 -1)
-;;     ;; Draw back face.
-;;     (cl-opengl:with-primitives :quad-strip
-;;       (dotimes (i (1+ n-teeth))
-;;         (let ((angle (/ (* i 2.0 +pif+) n-teeth)))
-;;           (cl-opengl:vertex (* r1 (cos angle)) (* r1 (sin angle)) (* width -0.5))
-;;           (cl-opengl:vertex (* r0 (cos angle)) (* r0 (sin angle)) (* width -0.5))
-;;           (cl-opengl:vertex (* r1 (cos (+ angle (* 3 da))))
-;;                        (* r1 (sin (+ angle (* 3 da))))
-;;                        (* width -0.5))
-;;           (cl-opengl:vertex (* r0 (cos angle)) (* r0 (sin angle)) (* width -0.5)))))
-;;     ;; Draw back sides of teeth.
-;;     (cl-opengl:with-primitives :quads
-;;       (dotimes (i n-teeth)
-;;         (let ((angle (/ (* i 2.0 +pif+) n-teeth)))
-;;           (cl-opengl:vertex (* r1 (cos (+ angle (* 3 da))))
-;;                      (* r1 (sin (+ angle (* 3 da))))
-;;                      (* (- width) 0.5))
-;;           (cl-opengl:vertex (* r2 (cos (+ angle (* 2 da))))
-;;                      (* r2 (sin (+ angle (* 2 da))))
-;;                      (* (- width) 0.5))
-;;           (cl-opengl:vertex (* r2 (cos (+ angle da))) (* r2 (sin (+ angle da)))
-;;                      (* (- width) 0.5))
-;;           (cl-opengl:vertex (* r1 (cos angle)) (* r1 (sin angle)) (* (- width) 0.5)))))
-;;     ;; Draw outward faces of teeth.
-;;     (cl-opengl:with-primitives :quad-strip
-;;       (dotimes (i n-teeth)
-;;         (let ((angle (/ (* i 2.0 +pif+) n-teeth)))
-;;           (cl-opengl:vertex (* r1 (cos angle)) (* r1 (sin angle)) (* width 0.5))
-;;           (cl-opengl:vertex (* r1 (cos angle)) (* r1 (sin angle)) (* (- width) 0.5))
-;;           (let* ((u (- (* r2 (cos (+ angle da))) (* r1 (cos angle))))
-;;                  (v (- (* r2 (sin (+ angle da))) (* r1 (sin angle))))
-;;                  (len (sqrt (+ (* u u) (* v v)))))
-;;             (setq u (/ u len))
-;;             (setq v (/ u len))
-;;             (cl-opengl:normal v (- u) 0.0)
-;;             (cl-opengl:vertex (* r2 (cos (+ angle da))) (* r2 (sin (+ angle da)))
-;;                        (* width 0.5))
-;;             (cl-opengl:vertex (* r2 (cos (+ angle da))) (* r2 (sin (+ angle da)))
-;;                        (* (- width) 0.5))
-;;             (cl-opengl:normal (cos angle) (sin angle) 0.0)
-;;             (cl-opengl:vertex (* r2 (cos (+ angle (* 2 da))))
-;;                        (* r2 (sin (+ angle (* 2 da))))
-;;                        (* width 0.5))
-;;             (cl-opengl:vertex (* r2 (cos (+ angle (* 2 da))))
-;;                        (* r2 (sin (+ angle (* 2 da))))
-;;                        (* (- width) 0.5))
-;;             (setq u (- (* r1 (cos (+ angle (* 3 da))))
-;;                        (* r2 (cos (+ angle (* 2 da))))))
-;;             (setq v (- (* r1 (sin (+ angle (* 3 da))))
-;;                        (* r2 (sin (+ angle (* 2 da))))))
-;;             (cl-opengl:normal v (- u) 0.0)
-;;             (cl-opengl:vertex (* r1 (cos (+ angle (* 3 da))))
-;;                        (* r1 (sin (+ angle (* 3 da))))
-;;                        (* width 0.5))
-;;             (cl-opengl:vertex (* r1 (cos (+ angle (* 3 da))))
-;;                        (* r1 (sin (+ angle (* 3 da))))
-;;                        (* (- width) 0.5))
-;;             (cl-opengl:normal (cos angle) (sin angle) 0.0))))
-;;       (cl-opengl:vertex (* r1 (cos 0)) (* r1 (sin 0)) (* width 0.5))
-;;       (cl-opengl:vertex (* r1 (cos 0)) (* r1 (sin 0)) (* (- width) 0.5)))
-;;     ;; Draw inside radius cylinder.
-;;     (cl-opengl:shade-model :smooth)
-;;     (cl-opengl:with-primitives :quad-strip
-;;       (dotimes (i (1+ n-teeth))
-;;         (let ((angle (/ (* i 2.0 +pif+) n-teeth)))
-;;           (cl-opengl:normal (- (cos angle)) (- (sin angle)) 0.0)
-;;           (cl-opengl:vertex (* r0 (cos angle)) (* r0 (sin angle)) (* (- width) 0.5))
-;;           (cl-opengl:vertex (* r0 (cos angle)) (* r0 (sin angle)) (* width 0.5)))))))
-
-;; (defclass gears-window (cl-glut:window)
-;;   ((view-rotx :initform 0.0)
-;;    (view-roty :initform 0.0)
-;;    (view-rotz :initform 0.0)
-;;    (track-z :initform 0)
-;;    (track-x :initform 0)
-;;    gear1 gear2 gear3
-;;    (angle :initform 0.0)
-;;    (count :initform 1)
-;;    (t0 :initform 0))
-;;   (:default-initargs :title "Gears" :mode '(:double :rgb :depth)))
-
-;; (defmethod cl-glut:display-window :before ((window gears-window))
-;;   (with-slots (gear1 gear2 gear3) window
-;;     (cl-opengl:light :light0 :position #(5.0 5.0 10.0 0.0))
-;;     (cl-opengl:enable :cull-face :lighting :light0 :depth-test)
-;;     ;; gear 1
-;;     (setq gear1 (cl-opengl:gen-lists 1))
-;;     (cl-opengl:with-new-list (gear1 :compile)
-;;       (cl-opengl:material :front :ambient-and-diffuse #(0.8 0.1 0.0 1.0)) ; red
-;;       (draw-gear 1.0 4.0 1.0 20 0.7))
-;;     ;; gear 2
-;;     (setq gear2 (cl-opengl:gen-lists 1))
-;;     (cl-opengl:with-new-list (gear2 :compile)
-;;       (cl-opengl:material :front :ambient-and-diffuse #(0.0 0.8 0.2 1.0)) ; green
-;;       (draw-gear 0.5 2.0 2.0 10 0.7))
-;;     ;; gear 3
-;;     (setq gear3 (cl-opengl:gen-lists 1))
-;;     (cl-opengl:with-new-list (gear3 :compile)
-;;       (cl-opengl:material :front-and-back :specular #(0.0 0.0 0.0 1.0)) ; blue
-;;       ;;(draw-gear 1.3 2.0 0.5 10 0.7)
-;;       (draw-pyramid))
-;;     (cl-opengl:enable :normalize)))
-
-;; (defun print-frame-rate (window)
-;;   "Prints the frame rate every ~5 seconds."
-;;   (with-slots (count t0) window
-;;     (incf count)
-;;     (let ((time (get-internal-real-time)))
-;;       (when (= t0 0)
-;;         (setq t0 time))
-;;       (when (>= (- time t0) (* 5 internal-time-units-per-second))
-;;         (let* ((seconds (/ (- time t0) internal-time-units-per-second))
-;;                (fps (/ count seconds)))
-;;           (format *terminal-io* "~D frames in ~3,1F seconds = ~6,3F FPS~%"
-;;                   count seconds fps))
-;;         (setq t0 time)
-;;         (setq count 0)))))
-
-;; (defmethod cl-glut:display ((window gears-window))
-;;   (with-slots (view-rotx view-roty view-rotz angle gear1 gear2 gear3 track-z track-x)
-;;       window
-;;     (cl-opengl:clear :color-buffer :depth-buffer)
-;;     (cl-opengl:with-pushed-matrix
-;;       (cl-opengl:rotate view-rotx 1 0 0)
-;;       (cl-opengl:rotate view-roty 0 1 0)
-;;       (cl-opengl:rotate view-rotz 0 0 1)
-;;       (cl-opengl:translate track-x 0 track-z)
-;;       (cl-opengl:with-pushed-matrix ; gear1
-;;         (cl-opengl:translate -3 -2 0)
-;;         (cl-opengl:rotate angle 0 0 1)
-;;         (cl-opengl:call-list gear1))
-;;       (cl-opengl:with-pushed-matrix ; gear2
-;;         (cl-opengl:translate 3.1 -2 0)
-;;         (cl-opengl:rotate (- (* -2 angle) 9) 0 0 1)
-;;         (cl-opengl:call-list gear2))
-;;       (cl-opengl:with-pushed-matrix ; gear3
-;;         (cl-opengl:translate -3.1 4.2 0.0)
-;;         (cl-opengl:rotate (- (* -2 angle) 25) 0 0 1)
-;;         (cl-opengl:call-list gear3)))
-;;     (cl-glut:swap-buffers)
-;;     (print-frame-rate window)
-;;     (sleep .02)))
-
-;; (defmethod cl-glut:idle ((window gears-window))
-;;   (incf (slot-value window 'angle) 2.0)
-;;   (cl-glut:post-redisplay))
