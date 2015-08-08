@@ -1,4 +1,4 @@
-;;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Base: 10 -*-
+;;;; -*- Mode: Lisp -*-
 
 (defpackage #:raytracer-asd
   (:use :cl :asdf))
@@ -11,6 +11,9 @@
     :version "0.0.1"
     :components ((:file "packages")
                  (:file "util")
+                 (:file "shape")
+                 (:file "sphere")
+                 (:file "scene")
                  (:file "tracer"))
     :depends-on (:cl-opengl
                  :cl-glut
