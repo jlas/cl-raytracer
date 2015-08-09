@@ -58,7 +58,7 @@
 
 ;; vector normalize
 (defun normalize (v1)
-  (vdiv v1 (sqrt (loop for i from 0 to 2 sum (* i i)))))
+  (vdiv (sqrt (loop for i from 0 to 2 sum (* i i))) v1))
 
 ;;(defconstant +pif+ (coerce pi 'single-float))
 
