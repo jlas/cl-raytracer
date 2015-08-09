@@ -14,7 +14,8 @@
                  (:file "shape")
                  (:file "sphere")
                  (:file "scene")
-                 (:file "tracer"))
+                 (:file "tracer")
+                 (:file "app"))
     :depends-on (:cl-opengl
                  :cl-glut
                  :cl-glu))
