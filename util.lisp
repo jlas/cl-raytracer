@@ -5,26 +5,44 @@
 ;; infinity
 (defconstant +inf+ (exp 20))
 
+(defun clamp-to-rgb (v1)
+  (declare (optimize (safety 0)) (type (signed-byte 32) x))
+  (vector (round (* (elt v1 0) 255))
+          (round (* (elt v1 1) 255))
+          (round (* (elt v1 2) 255))))
+
 ;; cross product
 (defun cross (v1 v2)
-  (let ((xl (nth 0 v1)) (yl (nth 1 v1)) (zl (nth 2 v1))
-        (xr (nth 0 v2)) (yr (nth 1 v2)) (zr (nth 2 v2)))
+  (let ((xl (elt v1 0)) (yl (elt v1 1)) (zl (elt v1 2))
+        (xr (elt v2 0)) (yr (elt v2 1)) (zr (elt v2 2)))
     (list (- (* yl zr) (* zl yr))
           (- (* zl xr) (* xl zr))
           (- (* xl yr) (* yl zr)))))
 
 ;; dot product
 (defun dot (v1 v2)
-  (+ (+ (* (nth 0 v1) (nth 0 v2))
-        (* (nth 1 v1) (nth 1 v2)))
-     (* (nth 2 v1) (nth 2 v2))))
+  (+ (+ (* (elt v1 0) (elt v2 0))
+        (* (elt v1 1) (elt v2 1)))
+     (* (elt v1 2) (elt v2 2))))
+
+;; weird mult
+(defun vmult-alt (v1 v2)
+  (list (* (elt v1 0) (elt v2 0))
+        (* (elt v1 1) (elt v2 1))
+        (* (elt v1 2) (elt v2 2))))
+
+;; magnitude
+(defun mag (v1)
+  (sqrt (+ (+ (expt (elt v1 0) 2)
+              (expt (elt v1 1) 2))
+           (expt (elt v1 2) 2))))
 
 ;; vector operation
 (defmacro vop (v1 v2 f)
   `(list
-    (,f (nth 0 ,v1) (nth 0 ,v2))
-    (,f (nth 1 ,v1) (nth 1 ,v2))
-    (,f (nth 2 ,v1) (nth 2 ,v2))))
+    (,f (elt ,v1 0) (elt ,v2 0))
+    (,f (elt ,v1 1) (elt ,v2 1))
+    (,f (elt ,v1 2) (elt ,v2 2))))
 
 ;; vector subtraction
 (defun vmin (v1 v2)
@@ -36,14 +54,14 @@
 
 (defmacro vscaleop (s v1 f)
   `(list
-    (,f (nth 0 ,v1) ,s)
-    (,f (nth 1 ,v1) ,s)
-    (,f (nth 2 ,v1) ,s)))
+    (,f (elt ,v1 0) ,s)
+    (,f (elt ,v1 1) ,s)
+    (,f (elt ,v1 2) ,s)))
 
 ;; vector rotation by quaternion
 (defun v-rot-quat (q v)
-  (let* ((qv (list (nth 0 q) (nth 1 q) (nth 2 q)))
-         (w (nth 3 q))
+  (let* ((qv (list (elt q 0) (elt q 1) (elt q 2)))
+         (w (elt q 3))
          (uv (cross qv v))
          (uuv (cross qv uv)))
     (vadd (vadd v (vmult (* 2 w) uv)) (vmult 2 uuv))))
