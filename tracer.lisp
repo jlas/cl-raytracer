@@ -25,7 +25,39 @@
                              (min-intersect (cdr geoms) newint (car geoms)))
                             (t
                              (min-intersect (cdr geoms) int geom))))))))
-    (min-intersect (slot-value scene 'geometries) +inf+ nil)))
+    (destructuring-bind (int geo)
+        (min-intersect (slot-value scene 'geometries) +inf+ nil)
+      (cond ((eq +inf+ int)
+             ;; TODO get background color if exists
+             (vector 0 0 0))
+            (t
+             (let ((gNormal (normal geo direction eyepos int))
+                   (gTexture (texture geo direction eyepos int))
+                   (gAmbient (ambient geo direction eyepos int))
+                   (gSpecular (specular geo direction eyepos int))
+                   (gDiffuse (diffuse geo direction eyepos int))
+                   (gRefractiveIdx (refractiveIdx geo direction eyepos int)))
+               (vector 0 0 0)))))))
+
+(defun iterpix (window scene camera)
+  (let ((buffer (vector)))
+    (with-slots (width height) window
+      (with-accessors ((camdir direction) (camup up)) camera
+        (with-slots ((eyepos position) aspect nearclip fov) camera
+          (dotimes (r height)
+            (dotimes (c width)
+              (let* ((xstep (/ (* 2 c) width)) (ystep (/ (* 2 r) height))
+                     (direction
+                      (vadd
+                       (vadd (vmult nearclip camdir)
+                             (vmult
+                              (tan (/ fov 2))
+                              (vmult (* (* nearclip aspect) (1- xstep))
+                                     (cross camdir camup))))
+                       (vmult
+                        (tan (/ fov 2))
+                        (vmult (* nearclip (1- ystep)) camup)))))
+                (concatenate 'vector buffer (raytrace scene direction eyepos))))))))))
 
 (defmethod cl-glut:display-window :before ((window tracer-window))
   (cl-opengl:enable :normalize)
@@ -78,30 +110,15 @@
 
       (mapcar #'addlight lights)
       (with-slots (width height) window
-        (with-accessors ((camdir direction) (camup up)) camera
-          (with-slots ((eyepos position) aspect nearclip fov) camera
-            (dotimes (r height)
-              (dotimes (c width)
-                (let* ((xstep (/ (* 2 c) width)) (ystep (/ (* 2 r) height))
-                      (direction
-                       (vadd
-                        (vadd (vmult nearclip camdir)
-                              (vmult
-                               (tan (/ fov 2))
-                               (vmult (* (* nearclip aspect) (1- xstep))
-                                      (cross camdir camup))))
-                        (vmult
-                         (tan (/ fov 2))
-                         (vmult (* nearclip (1- ystep)) camup)))))
-                  (raytrace scene direction eyepos)))))))))
+        (cl-opengl:draw-pixels width height :rgb :unsigned-byte
+                               (iterpix window scene camera)))))
+  (cl-glut:swap-buffers))
 
-  ;;(with-slots (width height) window
-
+;;(with-slots (width height) window
     ;;(cl-opengl:draw-pixels width height :rgba :unsigned-byte
         ;;                     (concatenate 'vector (loop for i from 0 to 360000 collect (mod i 255))))))
   ;;(cl-glut:solid-teapot 1))
   ;;(cl-opengl:draw-pixels 50 100 :rgba :unsigned-byte #(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
-  (cl-glut:swap-buffers))
 
 (defmethod cl-glut:idle ((window tracer-window))
   (cl-glut:post-redisplay))
