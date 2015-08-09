@@ -39,12 +39,16 @@
                    (gRefractiveIdx (refractiveIdx geo direction eyepos int)))
                (vector 0 0 0)))))))
 
-(defun iterpix (window scene camera)
+(defun iterpix (width height scene camera)
   (let ((buffer (vector)))
-    (with-slots (width height) window
-      (with-accessors ((camdir direction) (camup up)) camera
-        (with-slots ((eyepos position) aspect nearclip fov) camera
-          (dotimes (r height)
+    (with-accessors ((camdir direction) (camup up)) camera
+      (with-slots ((eyepos position) aspect nearclip fov) camera
+        (dotimes (r height)
+          (progn
+            (if (eq 0 (mod r 50))
+                (progn
+                  (format t "r ~a " r)
+                  (finish-output nil)))
             (dotimes (c width)
               (let* ((xstep (/ (* 2 c) width)) (ystep (/ (* 2 r) height))
                      (direction
@@ -57,7 +61,10 @@
                        (vmult
                         (tan (/ fov 2))
                         (vmult (* nearclip (1- ystep)) camup)))))
-                (concatenate 'vector buffer (raytrace scene direction eyepos))))))))))
+                (setf buffer
+                      (concatenate 'vector buffer
+                                   (raytrace scene direction eyepos)))))))))
+    (identity buffer)))
 
 (defmethod cl-glut:display-window :before ((window tracer-window))
   (cl-opengl:enable :normalize)
@@ -111,7 +118,7 @@
       (mapcar #'addlight lights)
       (with-slots (width height) window
         (cl-opengl:draw-pixels width height :rgb :unsigned-byte
-                               (iterpix window scene camera)))))
+                               (iterpix width height scene camera)))))
   (cl-glut:swap-buffers))
 
 ;;(with-slots (width height) window
@@ -176,4 +183,4 @@
     (t (cl-glut:disable-event w :idle))))
 
 (defun tracer ()
-  (cl-glut:display-window (make-instance 'tracer-window)))
+  (cl-glut:display-window (make-instance 'tracer-window :width 100 :height 100)))
