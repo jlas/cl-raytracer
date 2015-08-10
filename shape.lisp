@@ -9,7 +9,7 @@
    ;; ambient, diffuse, specular, shininess
    (material
     :initarg :material
-    :initform '((1 0 0 0) (1 0 0 0) (1 0 0 0) 0))))
+    :initform '((1 0 0 0) (1 0 0 0) (1 0 0 0) 1))))
 
 (defgeneric draw (shape))
 (defgeneric intersect (shape direction eye))

@@ -35,7 +35,8 @@
           :lights `(,(make-instance
                       'light :position '(0 0 0 1) :color '(1 1 1 1)))
           :geometries `(,(make-instance 'sphere :position '(1 0 -6))
-                         ,(make-instance 'sphere :position '(-1 0 -6))))))
+                         ,(make-instance 'sphere :position '(-1 0 -6))
+                         ,(make-instance 'sphere :position '(0 2 -6))))))
 
     (with-slots (camera lights geometries) scene
 
