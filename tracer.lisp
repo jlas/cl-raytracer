@@ -2,7 +2,8 @@
 
 (in-package :raytracer)
 
-(defun raytrace (scene direction eyepos &optional (slop 0) (depth 0))
+(defun raytrace (scene direction eyepos
+                 &optional (slop 0) (depth 0) (refIndices (list 0)))
   (labels ((min-intersect (geoms int geom)
              (cond ((eq geoms nil)
                     (list int geom))
@@ -24,8 +25,7 @@
                     (gSpecular (specular geo direction eyepos int))
                     (gDiffuse (diffuse geo direction eyepos int))
                     (gRefractiveIdx (refractiveIdx geo direction eyepos int))
-                    (newSrc (vadd eyepos (vmult int direction)))
-                    (refIndices (list 0)))
+                    (newSrc (vadd eyepos (vmult int direction))))
                (cond ((eq 0 gRefractiveIdx)
                       ;; non-dielectrics
                       (vector 0 0 0))
@@ -57,7 +57,8 @@
                                                   refractDirection
                                                   newSrc
                                                   0.01
-                                                  (1+ depth))))))
+                                                  (1+ depth)
+                                                  refIndices)))))
                           (let* ((reflectDirection
                                  (vmin direction
                                        (vmult
@@ -69,7 +70,8 @@
                                                         reflectDirection
                                                         newSrc
                                                         0.01
-                                                        (1+ depth))))
+                                                        (1+ depth)
+                                                        refIndices)))
                                  (r0 (expt
                                       (/ (1- (car refIndices))
                                          (1+ (car refIndices)))
@@ -92,9 +94,11 @@
       (with-slots ((eyepos position) aspect nearclip fov) camera
         (dotimes (r height)
           (progn
-            (if (eq 0 (mod r 50))
+            (if (eq 10 (mod r 50))
                 (progn
                   (format t "r ~a " r)
+                  (format t "buffer: ~a ~a ~a "
+                          (elt buffer 0) (elt buffer 1) (elt buffer 2))
                   (finish-output nil)))
             (dotimes (c width)
               (let* ((xstep (/ (* 2 c) width)) (ystep (/ (* 2 r) height))
