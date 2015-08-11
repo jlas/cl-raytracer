@@ -44,16 +44,16 @@
   (with-slots (position radius) shape
     (let* ((a (dot direction direction))
       (b (* 2 (dot direction (vmin eye position))))
-      (c (-
-          (dot
-           (vmin eye position)
-           (vmin eye position))
-          (* radius radius)))
-      (det (- (* b b) (* 4 (* a c)))))
-      (if (< det 0) +inf+
-          (min
-           (/ (- (* -1 b) (expt det 0.5)) (* 2 a))
-           (/ (+ (* -1 b) (expt det 0.5)) (* 2 a)))))))
+      (c (- (dot
+             (vmin eye position)
+             (vmin eye position))
+            (* radius radius)))
+           (det (- (* b b) (* 4 (* a c)))))
+      (cond ((< det 0) +inf+)
+            (t
+             (min
+                (/ (- (* -1 b) (expt det 0.5)) (* 2 a))
+                (/ (+ (* -1 b) (expt det 0.5)) (* 2 a))))))))
 
 (defmethod normal ((shape sphere) direction eye vecscale)
   (with-slots (position) shape
