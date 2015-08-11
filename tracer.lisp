@@ -9,7 +9,8 @@
                     (list int geom))
                    (t
                     (let ((newint (intersect (car geoms) direction eyepos)))
-                      (cond ((< newint int)
+                      (cond ((and (< newint int)
+                                  (> newint slop))
                              (min-intersect (cdr geoms) newint (car geoms)))
                             (t
                              (min-intersect (cdr geoms) int geom))))))))
