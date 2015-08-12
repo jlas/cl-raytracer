@@ -75,4 +75,4 @@
 
 (defmethod refractiveIdx (shape direction eye vecscale)
   (with-slots (material) shape
-    (nth 3 material)))
+    (nth 4 material)))

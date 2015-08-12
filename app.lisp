@@ -34,9 +34,25 @@
           :camera (make-instance 'camera)
           :lights `(,(make-instance
                       'light :position '(0 0 0 1) :color '(1 1 1 1)))
-          :geometries `(,(make-instance 'sphere :position '(1 0 -6))
-                         ,(make-instance 'sphere :position '(-1 0 -6))
-                         ,(make-instance 'sphere :position '(0 2 -6))))))
+          :geometries `(,
+                        ;; red
+                        (make-instance 'sphere
+                                       :position '(1 0 -6)
+                                       :material '((.78 .04 .04 1)
+                                                   (.78 .04 .04 1)
+                                                   (0 0 0 1) 0 0))
+
+                        ;; crystal
+                        ,(make-instance 'sphere :position '(-1 0 -6)
+                                        :material '((1 1 1 1)
+                                                    (1 1 1 1)
+                                                    (1 1 1 1) 10 1.6))
+
+                        ;; green
+                        ,(make-instance 'sphere :position '(0 2 -6)
+                                        :material '((.08 .57 .09 1)
+                                                    (.08 .57 .09 1)
+                                                    (0 0 0 1) 40 0))))))
 
     (with-slots (camera lights geometries) scene
 
@@ -56,11 +72,11 @@
                             (nth 0 up) (nth 1 up) (nth 2 up)))))
 
       (cl-opengl:with-pushed-matrix
-        (with-slots (trackx trackz tracky rotx roty rotz) window
-          (cl-opengl:rotate rotx 1 0 0)
-          (cl-opengl:rotate roty 0 1 0)
-          (cl-opengl:rotate rotz 0 0 1)
-          (cl-opengl:translate trackx tracky trackz))
+          (with-slots (trackx trackz tracky rotx roty rotz) window
+            (cl-opengl:rotate rotx 1 0 0)
+            (cl-opengl:rotate roty 0 1 0)
+            (cl-opengl:rotate rotz 0 0 1)
+            (cl-opengl:translate trackx tracky trackz))
         (mapcar #'draw geometries))
 
       (mapcar #'addlight lights)
@@ -107,7 +123,7 @@
       (:key-down (decf rotx 15))
       (:key-left (decf roty 15))
       (:key-right (incf roty 15))
-    (cl-glut:post-redisplay))))
+      (cl-glut:post-redisplay))))
 
 (defmethod cl-glut:reshape ((w tracer-window) width height)
   (cl-opengl:viewport 0 0 width height)
@@ -125,4 +141,4 @@
     (t (cl-glut:disable-event w :idle))))
 
 (defun tracer ()
-  (cl-glut:display-window (make-instance 'tracer-window :width 100 :height 100)))
+  (cl-glut:display-window (make-instance 'tracer-window :width 300 :height 300)))

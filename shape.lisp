@@ -6,10 +6,10 @@
   ((position
     :initarg :position
     :initform '(0 0 0))
-   ;; ambient, diffuse, specular, shininess
+   ;; ambient, diffuse, specular, shininess, refractionIdx
    (material
     :initarg :material
-    :initform '((1 1 1 1) (1 1 1 1) (1 1 1 1) 100))))
+    :initform '((.2 .2 .2 1) (.8 .8 .8 1) (.5 .5 .5 1) 0 0))))
 
 (defgeneric draw (shape))
 (defgeneric intersect (shape direction eye))

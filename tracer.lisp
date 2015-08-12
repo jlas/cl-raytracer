@@ -29,7 +29,7 @@
                     (newSrc (vadd eyepos (vmult int direction))))
                (cond ((eq 0 gRefractiveIdx)
                       ;; non-dielectrics
-                      (vector 0 0 0))
+                      gAmbient)
                      ((< depth 2)
                       ;; dielectrics
                       (let ((refract (vector 0 0 0))
