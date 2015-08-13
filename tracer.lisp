@@ -2,6 +2,47 @@
 
 (in-package :raytracer)
 
+(defun rt_refractives (scene newSrc depth direction gNormal refIndices
+                       gRefractiveIdx gSpecular)
+  (let ((refract (vector 0 0 0))
+        (gDot (dot direction gNormal))
+        (curRefIdx (pop refIndices)))
+    (cond ((< gDot 0)
+           (push gRefractiveIdx refIndices))
+          (t
+           (push 0 refIndices)))
+    (let ((root (- 1 (/
+                      (* (expt curRefIdx 2) (- 1 (expt gDot 2)))
+                      (expt (car refIndices) 2)))))
+      (cond ((>= root 0)
+             (let ((refractDirection
+                    (vmin (vdiv (car refIndices)
+                                (vmult curRefIdx (vmin direction
+                                                       (vmult gDot gNormal))))
+                          (vmult (sqrt root) gNormal))))
+               (setf refract (raytrace scene refractDirection newSrc 0.01
+                                       (1+ depth) refIndices)))))
+      (let* ((reflectDirection
+              (vmin direction (vmult
+                               (* 2 (dot gNormal direction))
+                               gNormal)))
+             (reflect
+              (vmult-alt gSpecular (raytrace scene reflectDirection newSrc 0.01
+                                             (1+ depth) refIndices)))
+             (r0 (expt (/ (1- (car refIndices))
+                          (1+ (car refIndices)))
+                       2))
+             (rtheta (+ r0 (* (1- r0)
+                              (expt
+                               (1-
+                                (cos
+                                 (/ gDot
+                                    (* (mag direction)
+                                       (mag gNormal)))))
+                               5)))))
+        (vadd (vmult rtheta reflect)
+              (vmult (1- rtheta) refract))))))
+
 (defun raytrace (scene direction eyepos
                  &optional (slop 0) (depth 0) (refIndices (list 0)))
   (labels ((min-intersect (geoms int geom)
@@ -31,61 +72,8 @@
                       ;; non-dielectrics
                       gAmbient)
                      ((< depth 2)
-                      ;; dielectrics
-                      (let ((refract (vector 0 0 0))
-                            (gDot (dot direction gNormal))
-                            (curRefIdx (pop refIndices)))
-                        (cond ((< gDot 0)
-                               (push gRefractiveIdx refIndices))
-                              (t
-                               (push 0 refIndices)))
-                        (let ((root
-                               (- 1
-                                  (/
-                                   (* (expt curRefIdx 2) (- 1 (expt gDot 2)))
-                                   (expt (car refIndices) 2)))))
-                          (cond ((>= root 0)
-                                 (let ((refractDirection
-                                        (vmin (vdiv
-                                               (car refIndices)
-                                               (vmult curRefIdx
-                                                      (vmin
-                                                       direction
-                                                       (vmult gDot gNormal))))
-                                              (vmult (sqrt root) gNormal))))
-                                   (setf refract (raytrace
-                                                  scene
-                                                  refractDirection
-                                                  newSrc
-                                                  0.01
-                                                  (1+ depth)
-                                                  refIndices)))))
-                          (let* ((reflectDirection
-                                 (vmin direction
-                                       (vmult
-                                        (* 2 (dot gNormal direction))
-                                        gNormal)))
-                                 (reflect
-                                  (vmult-alt gSpecular (raytrace
-                                                        scene
-                                                        reflectDirection
-                                                        newSrc
-                                                        0.01
-                                                        (1+ depth)
-                                                        refIndices)))
-                                 (r0 (expt
-                                      (/ (1- (car refIndices))
-                                         (1+ (car refIndices)))
-                                      2))
-                                 (rtheta (+ r0 (* (1- r0)
-                                                 (expt
-                                                  (1-
-                                                   (cos
-                                                    (/ gDot (* (mag direction)
-                                                              (mag gNormal)))))
-                                                  5)))))
-                            (vadd (vmult rtheta reflect)
-                                  (vmult (1- rtheta) refract))))))
+                      (rt_refractives scene newSrc depth direction gNormal
+                                      refIndices gRefractiveIdx gSpecular))
                      (t
                       (vector 0 0 0)))))))))
 
