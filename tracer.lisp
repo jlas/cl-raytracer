@@ -63,10 +63,10 @@
             (t
              (let* ((gNormal (normal geo direction eyepos int))
                     (gTexture (texture geo direction eyepos int))
-                    (gAmbient (ambient geo direction eyepos int))
-                    (gSpecular (specular geo direction eyepos int))
-                    (gDiffuse (diffuse geo direction eyepos int))
-                    (gRefractiveIdx (refractiveIdx geo direction eyepos int))
+                    (gAmbient (ambient geo))
+                    (gSpecular (specular geo))
+                    (gDiffuse (diffuse geo))
+                    (gRefractiveIdx (refractiveIdx geo))
                     (newSrc (vadd eyepos (vmult int direction))))
                (cond ((eq 0 gRefractiveIdx)
                       ;; non-dielectrics

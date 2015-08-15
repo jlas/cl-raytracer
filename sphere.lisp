@@ -59,20 +59,4 @@
   (with-slots (position) shape
     (normalize (vmin (vadd eye (vmult vecscale direction)) position))))
 
-(defmethod ambient ((shape sphere) direction eye vecscale)
-  (with-slots (material) shape
-    (nth 0 material)))
-
-(defmethod diffuse (shape direction eye vecscale)
-  (with-slots (material) shape
-    (nth 1 material)))
-
-(defmethod specular ((shape sphere) direction eye vecscale)
-  (with-slots (material) shape
-    (nth 2 material)))
-
 (defmethod texture (shape direction eye vecscale))
-
-(defmethod refractiveIdx (shape direction eye vecscale)
-  (with-slots (material) shape
-    (nth 4 material)))
