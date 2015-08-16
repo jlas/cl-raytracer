@@ -28,10 +28,17 @@
                (direct_color_from_light scene newSrc gDiffuse gNormal light))
            lights)))
 
-(defun rt_nonrefractives (scene newSrc gDiffuse gNormal gAmbient)
-  (vadd gAmbient
-        (direct_color_from_lights
-         scene newSrc gDiffuse gNormal (slot-value scene 'lights))))
+(defun rt_nonrefractives (scene newSrc depth direction refIndices
+                          gNormal gDiffuse gAmbient gSpecular)
+  (let* ((reflectDirection
+          (vmin direction (vmult (* 2 (dot direction gNormal)) gNormal)))
+         (reflect
+          (raytrace scene reflectDirection newSrc 0.01 (1+ depth) refIndices))
+         (direct
+          (vadd gAmbient
+                (direct_color_from_lights
+                 scene newSrc gDiffuse gNormal (slot-value scene 'lights)))))
+    (vadd direct (vmult-alt gSpecular reflect))))
 
 (defun rt_refractives (scene newSrc depth direction gNormal refIndices
                        gRefractiveIdx gSpecular)
@@ -102,7 +109,8 @@
                (cond ((eq 0 gRefractiveIdx)
                       ;; non-dielectrics
                       (rt_nonrefractives
-                       scene newSrc gDiffuse gNormal gAmbient))
+                       scene newSrc depth direction refIndices
+                       gNormal gDiffuse gAmbient gSpecular))
                      ((< depth 2)
                       (rt_refractives scene newSrc depth direction gNormal
                                       refIndices gRefractiveIdx gSpecular))
