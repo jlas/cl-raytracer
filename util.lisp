@@ -7,9 +7,9 @@
 
 (defun clamp-to-rgb (v1)
   (declare (optimize (safety 0)) (type (signed-byte 32) x))
-  (vector (abs (round (* (elt v1 0) 255)))
-          (abs (round (* (elt v1 1) 255)))
-          (abs (round (* (elt v1 2) 255)))))
+  (vector (round (* (max 0 (min 1 (elt v1 0))) 255))
+          (round (* (max 0 (min 1 (elt v1 1))) 255))
+          (round (* (max 0 (min 1 (elt v1 2))) 255))))
 
 ;; cross product
 (defun cross (v1 v2)
