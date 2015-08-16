@@ -1,4 +1,4 @@
-#!/opt/local/bin/sbcl --script
+#!/usr/bin/env sbcl --script
 
 ;; setup quicklisp
 (let ((quicklisp-init
