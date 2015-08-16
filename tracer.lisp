@@ -2,6 +2,37 @@
 
 (in-package :raytracer)
 
+(defun direct_color_from_light (scene newSrc gDiffuse gNormal light)
+  (let* ((lightRay (vmin (slot-value light 'position) newSrc))
+         (shadowDir (normalize lightRay))
+         (toLight (/ (mag lightRay) (mag shadowDir))))
+    (if
+     (equal
+      nil (some
+           #'(lambda (geo) (/= +inf+
+                               (let ((newInt (intersect geo shadowDir newSrc)))
+                                 (cond ((or (> newInt 0.01) (< newInt toLight)) newInt)
+                                       (t +inf+)))))
+           (remove-if-not
+            #'(lambda (geo) (= (refractiveIdx geo) 0))
+            (slot-value scene 'geometries))))
+     (vmult
+      (max 0 (dot gNormal shadowDir))
+      (vmult-alt (slot-value light 'color) gDiffuse))
+     (vector 0 0 0))))
+
+(defun direct_color_from_lights (scene newSrc gDiffuse gNormal lights)
+  (reduce #'vadd
+          (mapcar
+           #'(lambda (light)
+               (direct_color_from_light scene newSrc gDiffuse gNormal light))
+           lights)))
+
+(defun rt_nonrefractives (scene newSrc gDiffuse gNormal gAmbient)
+  (vadd gAmbient
+        (direct_color_from_lights
+         scene newSrc gDiffuse gNormal (slot-value scene 'lights))))
+
 (defun rt_refractives (scene newSrc depth direction gNormal refIndices
                        gRefractiveIdx gSpecular)
   (let ((refract (vector 0 0 0))
@@ -70,7 +101,8 @@
                     (newSrc (vadd eyepos (vmult int direction))))
                (cond ((eq 0 gRefractiveIdx)
                       ;; non-dielectrics
-                      gAmbient)
+                      (rt_nonrefractives
+                       scene newSrc gDiffuse gNormal gAmbient))
                      ((< depth 2)
                       (rt_refractives scene newSrc depth direction gNormal
                                       refIndices gRefractiveIdx gSpecular))
@@ -86,8 +118,6 @@
             (if (eq 10 (mod r 50))
                 (progn
                   (format t "r ~a " r)
-                  (format t "buffer: ~a ~a ~a "
-                          (elt buffer 0) (elt buffer 1) (elt buffer 2))
                   (finish-output nil)))
             (dotimes (c width)
               (let* ((xstep (/ (* 2 c) width)) (ystep (/ (* 2 r) height))
