@@ -28,32 +28,7 @@
   ;;(cl-opengl:shade-model :flat)
   ;;(cl-opengl:normal 0 0 1)
 
-  (let ((scene
-         (make-instance
-          'scene
-          :camera (make-instance 'camera)
-          :lights `(,(make-instance
-                      'light :position '(0 0 0 1) :color '(1 1 1 1)))
-          :geometries `(,
-                        ;; red
-                        (make-instance 'sphere
-                                       :position '(1 0 -6)
-                                       :material '((.78 .04 .04 1)
-                                                   (.78 .04 .04 1)
-                                                   (0 0 0 1) 0 0))
-
-                        ;; crystal
-                        ,(make-instance 'sphere :position '(-1 0 -6)
-                                        :material '((1 1 1 1)
-                                                    (1 1 1 1)
-                                                    (1 1 1 1) 10 1.6))
-
-                        ;; green
-                        ,(make-instance 'sphere :position '(0 2 -6)
-                                        :material '((.08 .57 .09 1)
-                                                    (.08 .57 .09 1)
-                                                    (0 0 0 1) 40 0))))))
-
+  (let ((scene (apply #'make-instance (cons 'scene (load-scene-foo)))))
     (with-slots (camera lights geometries) scene
 
       (cl-opengl:matrix-mode :projection)
@@ -141,4 +116,4 @@
     (t (cl-glut:disable-event w :idle))))
 
 (defun tracer ()
-  (cl-glut:display-window (make-instance 'tracer-window :width 300 :height 300)))
+  (cl-glut:display-window (make-instance 'tracer-window :width 100 :height 100)))
