@@ -10,7 +10,9 @@
    (roty :initform 0)
    (rotz :initform 0)
    (height :initarg :height :initform 300)
-   (width :initarg :width :initform 300))
+   (width :initarg :width :initform 300)
+   (rt_start :initform nil)
+   (rt_buffer :initform nil))
   (:default-initargs :title "Tracer" :mode '(:double :rgb :depth)))
 
 (defmethod cl-glut:display-window :before ((window tracer-window))
@@ -19,15 +21,6 @@
 
 (defmethod cl-glut:display ((window tracer-window))
   (cl-opengl:clear :color-buffer :depth-buffer)
-  ;; (let ((triangle (cl-opengl:gen-lists 1)))
-  ;;   (cl-opengl:with-pushed-matrix
-  ;;     (cl-opengl:rotate 0 1 0 0)
-  ;;     (cl-opengl:with-new-list (triangle :compile))
-  ;;     (draw-triangle)
-  ;;     (cl-opengl:call-list triangle)))
-  ;;(cl-opengl:shade-model :flat)
-  ;;(cl-opengl:normal 0 0 1)
-
   (let ((scene (apply #'make-instance (cons 'scene (load-scene-foo)))))
     (with-slots (camera lights geometries) scene
 
@@ -55,9 +48,14 @@
         (mapcar #'draw geometries))
 
       (mapcar #'addlight lights)
-      (with-slots (width height) window
-        (cl-opengl:draw-pixels width height :rgb :unsigned-byte
-                               (iterpix width height scene camera)))))
+      (if (slot-value window 'rt_start)
+          (with-slots (width height rt_start rt_buffer) window
+            (setf rt_buffer (iterpix width height scene camera))
+            (setf rt_start nil)))
+      (if (slot-value window 'rt_buffer)
+          (with-slots (width height rt_buffer) window
+            (cl-opengl:draw-pixels
+             width height :rgb :unsigned-byte rt_buffer)))))
   (cl-glut:swap-buffers))
 
 (defmethod cl-glut:idle ((window tracer-window))
@@ -65,11 +63,12 @@
 
 (defmethod cl-glut:keyboard ((window tracer-window) key x y)
   (declare (ignore x y))
-  (with-slots (rotx roty rotz trackz trackx tracky) window
+  (with-slots (rotx roty rotz trackz trackx tracky rt_start rt_buffer) window
     (case key
       (#\z (incf (slot-value window 'rotz) 5.0))
-      (#\Z (decf (slot-value window 'rotz) 5.0))
+      (#\x (decf (slot-value window 'rotz) 5.0))
       (#\Esc (cl-glut:destroy-current-window))
+      (#\r (setf rt_start t))
       (#\w (setf trackz (+ trackz (cos (to-rad rotx))))
            (setf tracky (+ tracky (sin (to-rad rotx))))
            (setf trackx (- trackx (sin (to-rad roty))))
@@ -88,7 +87,8 @@
        (setf tracky 0)
        (setf rotx 0)
        (setf roty 0)
-       (setf rotz 0)))))
+       (setf rotz 0)
+       (setf rt_buffer nil)))))
 
 (defmethod cl-glut:special ((window tracer-window) special-key x y)
   (declare (ignore x y))
