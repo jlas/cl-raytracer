@@ -66,6 +66,19 @@
          (uuv (cross qv uv)))
     (vadd (vadd v (vmult (* 2 w) uv)) (vmult 2 uuv))))
 
+(defun quat-w (q)
+  (cos (* 0.5 (elt q 3))))
+
+(defun to-angle-axis (q)
+  (let* ((x (elt q 0))
+         (y (elt q 1))
+         (z (elt q 2))
+         (norm (+ (expt x 2) (expt y 2) (expt z 3))))
+    (cond ((> norm 0)
+           (list (* 2 (acos (quat-w q)))
+                 (vmult (/ 1 (sqrt norm)) (vector x y z))))
+          (t '(0 #(1 0 0))))))
+
 ;; vector-scalar multiplication
 (defun vmult (s v1)
   (vscaleop s v1 *))
