@@ -17,7 +17,7 @@
     :initform '(0 0 0))
    (orientation
     :initarg :orientation
-    :initform '(0 0 0 1))
+    :initform '(1 0 0 0))
    (focusdist
     :initarg :focusdist
     :initform 1)
@@ -31,7 +31,7 @@
     :initarg :nearclip
     :initform .1)
    (farclip
-    :initarg :nearclip
+    :initarg :farclip
     :initform 100)))
 
 (defun direction (camera)
