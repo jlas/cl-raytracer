@@ -17,7 +17,7 @@
     :initform '(0 0 0))
    (orientation
     :initarg :orientation
-    :initform '(1 0 0 0))
+    :initform '(0 0 0 1))
    (focusdist
     :initarg :focusdist
     :initform 1)
@@ -57,6 +57,7 @@
 (defmethod addlight (light)
   (with-slots (position color) light
     (cl-opengl:light :light0 :position position)
+    (cl-opengl:light :light0 :ambient color)
     (cl-opengl:light :light0 :diffuse color)
     (cl-opengl:light :light0 :specular color))
   (cl-opengl:enable :lighting :light0))
