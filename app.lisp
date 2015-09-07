@@ -32,6 +32,15 @@
 
       (cl-opengl:matrix-mode :modelview)
       (cl-opengl:load-identity)
+
+      (with-slots (trackx trackz tracky rotx roty rotz) window
+        (setf (slot-value camera 'position)
+              (vadd (slot-value camera 'position)
+                    (vector trackx tracky trackz)))
+        (setf (slot-value camera 'orientation)
+              (quat-mult (slot-value camera 'orientation)
+                         (to-quat (to-rot-matrix rotx roty rotz)))))
+
       (with-accessors ((direction direction) (up up)) camera
         (with-slots (position) camera
           (let ((center (vadd position direction)))
@@ -40,11 +49,6 @@
                             (nth 0 up) (nth 1 up) (nth 2 up)))))
 
       (cl-opengl:with-pushed-matrix
-          (with-slots (trackx trackz tracky rotx roty rotz) window
-            (cl-opengl:rotate rotx 1 0 0)
-            (cl-opengl:rotate roty 0 1 0)
-            (cl-opengl:rotate rotz 0 0 1)
-            (cl-opengl:translate trackx tracky trackz))
         (mapcar #'draw geometries))
 
       (mapcar #'addlight lights)
@@ -65,8 +69,8 @@
   (declare (ignore x y))
   (with-slots (rotx roty rotz trackz trackx tracky rt_start rt_buffer) window
     (case key
-      (#\z (incf (slot-value window 'rotz) 5.0))
-      (#\x (decf (slot-value window 'rotz) 5.0))
+      (#\z (incf (slot-value window 'rotx) .25))
+      (#\x (decf (slot-value window 'rotx) .25))
       (#\Esc (cl-glut:destroy-current-window))
       (#\r (setf rt_start t))
       (#\w (setf trackz (+ trackz (cos (to-rad rotx))))
@@ -92,12 +96,12 @@
 
 (defmethod cl-glut:special ((window tracer-window) special-key x y)
   (declare (ignore x y))
-  (with-slots (rotx roty rotz) window
+  (with-slots (roty rotz) window
     (case special-key
-      (:key-up (incf rotx 15))
-      (:key-down (decf rotx 15))
-      (:key-left (decf roty 15))
-      (:key-right (incf roty 15))
+      (:key-up (incf rotz .25))
+      (:key-down (decf rotz .25))
+      (:key-left (decf roty .25))
+      (:key-right (incf roty .25))
       (cl-glut:post-redisplay))))
 
 (defmethod cl-glut:reshape ((w tracer-window) width height)
