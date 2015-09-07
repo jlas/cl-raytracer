@@ -35,7 +35,9 @@
   (let* ((reflectDirection
           (vmin direction (vmult (* 2 (dot direction gNormal)) gNormal)))
          (reflect
-          (raytrace scene reflectDirection newSrc 0.01 (1+ depth) refIndices))
+          (if (< depth 2)
+              (raytrace scene reflectDirection newSrc 0.01 (1+ depth) refIndices)
+              (vector 0 0 0)))
          (direct
           (vadd gAmbient
                 (direct-color-from-lights
