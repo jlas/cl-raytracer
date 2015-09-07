@@ -2,17 +2,19 @@
 
 (in-package :raytracer)
 
-(defun direct_color_from_light (scene newSrc gDiffuse gNormal light)
+(defun direct-color-from-light (scene newSrc gDiffuse gNormal light)
   (let* ((lightRay (vmin (slot-value light 'position) newSrc))
          (shadowDir (normalize lightRay))
          (toLight (/ (mag lightRay) (mag shadowDir))))
     (if
      (equal
       nil (some
+           ;; filter out geometries that are occluded by shadows
            #'(lambda (geo) (/= +inf+
                                (let ((newInt (intersect geo shadowDir newSrc)))
-                                 (cond ((or (> newInt 0.01) (< newInt toLight)) newInt)
+                                 (cond ((and (> newInt 0.01) (< newInt toLight)) newInt)
                                        (t +inf+)))))
+           ;; filter out refractive geometries
            (remove-if-not
             #'(lambda (geo) (= (refractiveIdx geo) 0))
             (slot-value scene 'geometries))))
@@ -21,14 +23,14 @@
       (vmult-alt (slot-value light 'color) gDiffuse))
      (vector 0 0 0))))
 
-(defun direct_color_from_lights (scene newSrc gDiffuse gNormal lights)
+(defun direct-color-from-lights (scene newSrc gDiffuse gNormal lights)
   (reduce #'vadd
           (mapcar
            #'(lambda (light)
-               (direct_color_from_light scene newSrc gDiffuse gNormal light))
+               (direct-color-from-light scene newSrc gDiffuse gNormal light))
            lights)))
 
-(defun rt_nonrefractives (scene newSrc depth direction refIndices
+(defun rt-nonrefractives (scene newSrc depth direction refIndices
                           gNormal gDiffuse gAmbient gSpecular)
   (let* ((reflectDirection
           (vmin direction (vmult (* 2 (dot direction gNormal)) gNormal)))
@@ -36,11 +38,11 @@
           (raytrace scene reflectDirection newSrc 0.01 (1+ depth) refIndices))
          (direct
           (vadd gAmbient
-                (direct_color_from_lights
+                (direct-color-from-lights
                  scene newSrc gDiffuse gNormal (slot-value scene 'lights)))))
     (vadd direct (vmult-alt gSpecular reflect))))
 
-(defun rt_refractives (scene newSrc depth direction gNormal refIndices
+(defun rt-refractives (scene newSrc depth direction gNormal refIndices
                        gRefractiveIdx gSpecular)
   (let ((refract (vector 0 0 0))
         (gDot (dot direction gNormal))
@@ -108,11 +110,11 @@
                     (newSrc (vadd eyepos (vmult int direction))))
                (cond ((eq 0 gRefractiveIdx)
                       ;; non-dielectrics
-                      (rt_nonrefractives
+                      (rt-nonrefractives
                        scene newSrc depth direction refIndices
                        gNormal gDiffuse gAmbient gSpecular))
                      ((< depth 2)
-                      (rt_refractives scene newSrc depth direction gNormal
+                      (rt-refractives scene newSrc depth direction gNormal
                                       refIndices gRefractiveIdx gSpecular))
                      (t
                       (vector 0 0 0)))))))))
