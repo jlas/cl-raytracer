@@ -33,39 +33,39 @@
 
 (defun load-scene-cornell-box ()
   (list
-   :camera (make-instance 'camera :position '(0 0 6 0))
+   :camera (make-instance 'camera :position '(0 0 -6 0))
    :lights (list
             (make-instance 'light
-                           :position '(0 0 3 1)
+                           :position '(0 4 0 1)
                            :color '(1 1 1 1)))
    :geometries (list
                 ;; red
                 (make-instance 'sphere
-                               :position '(-1.5 -2 -1.5)
+                               :position '(-1.5 2 1.5)
                                :material '((.78 .04 .04 1)
                                            (.78 .04 .04 1)
                                            (.5 .5 .5 1) 0 0))
                 ;; crystal
                 (make-instance 'sphere
-                               :position '(1.5 -2 -1.5)
+                               :position '(1.5 2 1.5)
                                :material '((1 1 1 1)
                                            (1 1 1 1)
                                            (1 1 1 1) 10 1.6))
                 ;; back wall
                 (make-instance 'triangle
                                :orientation '(0 0 0 0)
-                               :vertices '((-3 3 -3) (-3 -3 -3) (3 -3 -3))
+                               :vertices '((-3 3 3) (-3 -3 3) (3 -3 3))
                                :normal '(0 0 0)
                                :material '((1 1 1 1)
                                            (1 1 1 1)
-                                           (1 1 1 1) 0 0))
+                                           (0 0 0 0) 0 0))
                 (make-instance 'triangle
                                :orientation '(0 0 0 0)
-                               :vertices '((-3 3 -3) (3 3 -3) (3 -3 -3))
+                               :vertices '((-3 3 3) (3 3 3) (3 -3 3))
                                :normal '(0 0 0)
                                :material '((1 1 1 1)
                                            (1 1 1 1)
-                                           (1 1 1 1) 0 0))
+                                           (0 0 0 0) 0 0))
                 ;; left wall
                 (make-instance 'triangle
                                :orientation '(0 0 0 0)
@@ -103,14 +103,14 @@
                                :normal '(0 0 0)
                                :material '((1 1 1 1)
                                            (1 1 1 1)
-                                           (1 1 1 1) 0 0))
+                                           (0 0 0 0) 0 0))
                 (make-instance 'triangle
                                :orientation '(0 0 0 0)
                                :vertices '((3 3 -3) (3 3 3) (-3 3 3))
                                :normal '(0 0 0)
                                :material '((1 1 1 1)
                                            (1 1 1 1)
-                                           (1 1 1 1) 0 0))
+                                           (0 0 0 0) 0 0))
                 ;; bottom wall
                 (make-instance 'triangle
                                :orientation '(0 0 0 0)
@@ -118,11 +118,11 @@
                                :normal '(0 0 0)
                                :material '((1 1 1 1)
                                            (1 1 1 1)
-                                           (1 1 1 1) 0 0))
+                                           (0 0 0 0) 0 0))
                 (make-instance 'triangle
                                :orientation '(0 0 0 0)
                                :vertices '((3 -3 -3) (3 -3 3) (-3 -3 3))
                                :normal '(0 0 0)
                                :material '((1 1 1 1)
                                            (1 1 1 1)
-                                           (1 1 1 1) 0 0)))))
+                                           (0 0 0 0) 0 0)))))

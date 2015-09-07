@@ -21,7 +21,7 @@
 
 (defmethod cl-glut:display ((window tracer-window))
   (cl-opengl:clear :color-buffer :depth-buffer)
-  (let ((scene (apply #'make-instance (cons 'scene (load-scene-foo)))))
+  (let ((scene (apply #'make-instance (cons 'scene (load-scene-cornell-box)))))
     (with-slots (camera lights geometries) scene
 
       (cl-opengl:matrix-mode :projection)
@@ -120,4 +120,4 @@
     (t (cl-glut:disable-event w :idle))))
 
 (defun tracer ()
-  (cl-glut:display-window (make-instance 'tracer-window :width 100 :height 100)))
+  (cl-glut:display-window (make-instance 'tracer-window :width 200 :height 200)))
